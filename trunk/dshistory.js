@@ -1,16 +1,23 @@
 // dsHistory, v1.0
 // Copyright (c) 2007 Andrew Mattie (http://www.akmattie.net)
 //
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
@@ -35,20 +42,55 @@ var dsHistory = function() {
 	var forwardEventCache = []; // events that are removed from eventCache as the user goes back are concat'd here
 	var isInHistory = false; // if we're somewhere in the middle of the history stack, this will be set to true
 	var options; // holds the options literal passed into the init function
-	var frameWindow, frameDocument; // since we're going to be looking at the internals of the frame so often, we will cache a reference to it and just unload it when the page unloads
+	var frameWindow; // since we're going to be looking at the internals of the frame so often, we will cache a reference to it and just unload it when the page unloads
 	var watcherInterval; // save the handle returned by setInterval so we can unregister it on unload
 	var isGoingBackward, isGoingForward; // assists us in knowing whether we're going back through the history or forward
+	var returnObject;
 	
 	// internal function to make sure we don't leave any memory leaks when the visitor leaves
 	function unload() {
 		window.clearInterval(watcherInterval);
 		delete frameWindow;
 		delete eventCache;
-	}
+	};
+	// internal function to return the iteration we are on
+	function readIteration() {
+		// lazy function definition pattern used for performance
+		
+		if (supportsDataProtocol) {
+			// if supportsDataProtocol, this can be closed at a higher level so it will be a bit faster. we shouldn't worry about memory leaks
+			// here since, if the data protocol is supported, we know that it's not IE and can assume that it won't leak.
+			var frameBody = frameWindow.document.body;
+			readIteration = function() {
+				return parseInt(frameBody.textContent);
+			};
+		} else {
+			readIteration = function() {
+				return parseInt(frameWindow.document.body.innerText);
+			};
+		}
+		
+		readIteration();
+	};
+	// internal function to save the iteration we are on
+	function writeIteration(iteration) {
+		// lazy function definition pattern used for performance
+		if (supportsDataProtocol) {
+			writeIteration = function(iteration) {
+				frameWindow.document.body.textContent = String(iteration);
+			};
+		} else {
+			writeIteration = function(iteration) {
+				frameWindow.document.body.innerText = String(iteration);
+			};
+		}
+		
+		writeIteration(iteration);
+	};
 	// internal function to load and split our query vars into our QueryElements object
 	function loadQueryVars() {
 		// flush out the object each time this is called
-		this.QueryElements = {};
+		returnObject.QueryElements = {};
 		
 		if (window.location.hash == '' || window.location.hash == '#') return;
 		
@@ -56,16 +98,16 @@ var dsHistory = function() {
 		for (i = 0; i < hashItems.length; i++) {
 			if (hashItems[i].indexOf('=') != -1)
 				// the encoding and decoding of the hash is taken care of by the browser
-				this.QueryElements[hashItems[i].split('=')[0]] = hashItems[i].split('=')[1];
+				returnObject.QueryElements[hashItems[i].split('=')[0]] = hashItems[i].split('=')[1];
 			else
-				this.QueryElements[hashItems[i]] = '';
+				returnObject.QueryElements[hashItems[i]] = '';
 		}
 		
 		lastHash = window.location.hash;
-	}
+	};
 	// internal function to be called when we want to actually add something to the browser's history
 	function updateFrameIteration(comingFromQueryBind) {
-		var currentIteration = parseInt(frameWindow.document.body.textContent);
+		var currentIteration = readIteration();
 		var lastEvent, newEvent, lastHash;
 		
 		// it seems that gecko has a sweet bug / feature / something that prevents the history from changing with a frame iteration after a hash has changed the history
@@ -105,24 +147,22 @@ var dsHistory = function() {
 			&& ( (hashCache.length == (comingFromQueryBind ? 1 : 0) && !browser.IE) || (hashCache.length == 2 && browser.IE) ) // extra hash for ie
 			&& eventCache.length <= 1
 			) {
-			frameWindow.document.body.textContent = '1';
+			writeIteration(1);
 		} else {
 			if (supportsDataProtocol)
 				document.getElementById('dsHistoryFrame').src = 'data:,' + String(currentIteration + 1);
-			//else
-				//document.getElementById('dsHistoryFrame').src = 'javascript:document.open();document.write(\'' + String(currentIteration + 1) + '\');document.close()';
-			//document.getElementById('dsHistoryFrame').src = 'about:' + String(currentIteration + 1);
-			//document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
-			//frameWindow.document.open();
-			//frameWindow.document.write(String(currentIteration + 1));
-			//frameWindow.document.close();
+			else {
+				frameWindow.document.open();
+				frameWindow.document.write(String(currentIteration + 1));
+				frameWindow.document.close();
+			}
 		}
-	}
+	};
 	// internal function that is called every 10 ms to check to see if we've gone back in time
 	function frameWatcher() {
 		if (!frameWindow.document) return; // don't worry about watching the frame until this is initialized
 		
-		var frameIteration = parseInt(frameWindow.document.body.textContent);
+		var frameIteration = readIteration();
 		var windowHash = window.location.hash;
 		
 		if (isInHistory && hashCache.length > 1 && window.location.hash == hashCache[0] && dirtyHash != initialHash)
@@ -200,40 +240,20 @@ var dsHistory = function() {
 		
 		// so we always have something to compare to the next time this is called
 		lastFrameIteration = frameIteration;
-	}
+	};
 	
-	return {
+	returnObject = {
 		QueryElements: {}, // name/value collection to hold the values in the window hash
 		initialize: function(initOptions) {
-			// we use a frame to track history all the time in IE since window.location.hash doesn't update the history.
-			// in Gecko, we only use a frame to track history when we're not also trying to update the window hash
-			
-			if (supportsDataProtocol)
-				document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="data:,0"></iframe>');
-			else
-				document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
-			//document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="about:0"></iframe>');
-			
-			frameWindow = window.frames['dsHistoryFrame'];
-			
-			if (browser.IE)
-				hashCache.push(window.location.hash);
-			watcherInterval = window.setInterval(frameWatcher, 15);
-			
-			// initialize the QueryElements object
-			loadQueryVars.call(this);
-			
+			// the library itself is actually initialized before the anonymous function that is this library is returned, but we use
+			// this function call both for backwards compatibility as well as for initializing any options that the developer may want
+			// to use
+					
 			if (typeof initOptions == 'object') {
 				options = initOptions;
-				if (typeof initOptions.dispatchFunction == 'function') options.dispatchFnc();
+				if (typeof options.dispatchFunction == 'function') options.dispatchFunction();
 			}
 			if (typeof initOptions == 'function') initOptions(); // kept for backwards compatibility
-			
-			// make sure we don't leave any memory leaks when the visitor leaves
-			if (window.addEventListener)
-				window.addEventListener('unload', unload, false);
-			else if (window.attachEvent)
-				window.attachEvent('onunload', unload);
 		},
 		addFunction: function(fnc) {
 			// flush out anything that would have been used for the forward action if the user had used the back action
@@ -320,9 +340,10 @@ var dsHistory = function() {
 			if (window.location.hash == dirtyHash) return;
 			
 			// if the option to defer processing has been set and 
-			if (options.deferProcessing && !continueProcessing) {
-			    window.setTimeout(function() { arguments.callee.name(fnc, true); }, 1);
-			    return;
+			if (options && options.deferProcessing && !continueProcessing) {
+				var currentFnc = arguments.callee;
+				window.setTimeout(function() { currentFnc(fnc, true) }, 10);
+				return;
 			}
 			
 			// flush out anything that would have been used for the forward action if the user had used the back action
@@ -352,11 +373,39 @@ var dsHistory = function() {
 			if (browser.IE)
 				updateFrameIteration(true);
 			
-			loadQueryVars.call(this);
+			loadQueryVars();
 		},
 		setFirstEvent: function(fnc) {
 			if (eventCache.length > 0)
 				eventCache[0] = fnc;
 		}
-	}
+	};
+	
+	// initialize the library
+	(function() {
+		// we use a frame to track history all the time in IE since window.location.hash doesn't update the history.
+		// in Gecko, we only use a frame to track history when we're not also trying to update the window hash
+		
+		if (supportsDataProtocol)
+			document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="data:,0"></iframe>');
+		else
+			document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
+		
+		frameWindow = window.frames['dsHistoryFrame'];
+		
+		if (browser.IE)
+			hashCache.push(window.location.hash);
+		watcherInterval = window.setInterval(frameWatcher, 15);
+		
+		// initialize the QueryElements object
+		loadQueryVars.call(this);
+		
+		// make sure we don't leave any memory leaks when the visitor leaves
+		if (window.addEventListener)
+			window.addEventListener('unload', unload, false);
+		else if (window.attachEvent)
+			window.attachEvent('onunload', unload);
+	})();
+	
+	return returnObject;
 }();
