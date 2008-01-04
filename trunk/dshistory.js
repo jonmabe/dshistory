@@ -34,8 +34,8 @@ var dsHistory = function() {
 	var supportsDataProtocol = browser.Opera || browser.WebKit || browser.Gecko;
 	var lastFrameIteration = 0;
 	var lastHash = '';
-	var dirtyHash = window.location.hash;
-	var initialHash = window.location.hash;
+	var dirtyHash = getEncodedWindowHash();
+	var initialHash = getEncodedWindowHash();
 	var hashCache = []; // holds all previous hashes
 	var forwardHashCache = []; // hashes that are removed from hashCache as the user goes back are concat'd here
 	var eventCache = []; // holds all events
@@ -56,13 +56,9 @@ var dsHistory = function() {
 	// internal function to return the iteration we are on
 	function readIteration() {
 		// lazy function definition pattern used for performance
-		
 		if (supportsDataProtocol) {
-			// if supportsDataProtocol, this can be closed at a higher level so it will be a bit faster. we shouldn't worry about memory leaks
-			// here since, if the data protocol is supported, we know that it's not IE and can assume that it won't leak.
-			var frameBody = frameWindow.document.body;
 			readIteration = function() {
-				return parseInt(frameBody.textContent);
+				return parseInt(frameWindow.document.body.textContent);
 			};
 		} else {
 			readIteration = function() {
@@ -87,6 +83,32 @@ var dsHistory = function() {
 		
 		writeIteration(iteration);
 	};
+	// internal function to return the window hash after the keys and values have been run through encodeURIComponent
+	function getEncodedWindowHash() {
+		if (window.location.hash == '') return '';
+		
+		var hashItems = window.location.hash.substring(1).split('&');
+		var encodedHash;
+		
+		// for performance, we'll assume that if we're doing more than 9 concats that it will be quicker to use and array and then use the .join('&') trick
+		if (hashItems.length > 9) {
+			var encodedHashItems = [];
+			
+			for (i = 0; i < hashItems.length; i++) {
+				hashSplit = hashItems[i].split('=');
+				encodedHashItems.push((i == 0 ? '' : '&') + encodeURIComponent(hashSplit[0]) + (hashSplit.length == 2 ? '=' + encodeURIComponent(hashSplit[1]) : ''));
+			}
+			encodedHash = encodedHashItems.join('&');
+		} else {
+			encodedHash = ''
+			for (i = 0; i < hashItems.length; i++) {
+				hashSplit = hashItems[i].split('=');
+				encodedHash += (i == 0 ? '' : '&') + encodeURIComponent(hashSplit[0]) + (hashSplit.length == 2 ? '=' + encodeURIComponent(hashSplit[1]) : '');
+			}
+		}
+		
+		return encodedHash;
+	};
 	// internal function to load and split our query vars into our QueryElements object
 	function loadQueryVars() {
 		// flush out the object each time this is called
@@ -95,36 +117,32 @@ var dsHistory = function() {
 		if (window.location.hash == '' || window.location.hash == '#') return;
 		
 		var hashItems = window.location.hash.substring(1).split('&');
+		var hashSplit;
+		
 		for (i = 0; i < hashItems.length; i++) {
-			if (hashItems[i].indexOf('=') != -1)
-				// the encoding and decoding of the hash is taken care of by the browser
-				returnObject.QueryElements[hashItems[i].split('=')[0]] = hashItems[i].split('=')[1];
-			else
-				returnObject.QueryElements[hashItems[i]] = '';
+			hashSplit = hashItems[i].split('=');
+			returnObject.QueryElements[decodeURIComponent(hashSplit[0])] = hashSplit.length == 2 ? decodeURIComponent(hashSplit[1]) : '';
 		}
 		
-		lastHash = window.location.hash;
+		lastHash = getEncodedWindowHash();
 	};
 	// internal function to be called when we want to actually add something to the browser's history
 	function updateFrameIteration(comingFromQueryBind) {
 		var currentIteration = readIteration();
-		var lastEvent, newEvent, lastHash;
+		var lastEvent, newEvent;
 		
 		// it seems that gecko has a sweet bug / feature / something that prevents the history from changing with a frame iteration after a hash has changed the history
 		// therefore, we have to mess with the hash enough to get it to add to the browser's history and then change it back so we don't screw up any values in the hash
 		if (hashCache.length > 0 && !browser.IE) {
 			// splice the event off the stack so we can add it on later
 			lastEvent = eventCache.splice(eventCache.length - 1, 1)[0];
-			lastHash = lastHash;
-			
-			if (lastHash == '') lastHash = '#';
 			
 			// use the dirty hash here since it's encoded and window.location.hash isn't encoded. otherwise, the history could be updated inadvertently
-			window.location.hash = lastHash + String(hashCache.length); // this can be anything, as long as the hash changes
-			hashCache.push(window.location.hash);
+			window.location.hash = (lastHash == '' ? '#' : lastHash) + String(hashCache.length); // this can be anything, as long as the hash changes
+			hashCache.push(getEncodedWindowHash());
 			
 			window.location.hash = lastHash;
-			hashCache.push(window.location.hash);
+			hashCache.push(getEncodedWindowHash());
 			
 			// since we popped off the last event on the history stack, we're going to add it back on _after_ we add on a function to get back to our unadultered hash
 			eventCache.push(function(direction) {
@@ -163,9 +181,9 @@ var dsHistory = function() {
 		if (!frameWindow.document) return; // don't worry about watching the frame until this is initialized
 		
 		var frameIteration = readIteration();
-		var windowHash = window.location.hash;
+		var windowHash = getEncodedWindowHash();
 		
-		if (isInHistory && hashCache.length > 1 && window.location.hash == hashCache[0] && dirtyHash != initialHash)
+		if (isInHistory && hashCache.length > 1 && getEncodedWindowHash() == hashCache[0] && dirtyHash != initialHash)
 			dirtyHash = initialHash;
 		
 		// if the frame iteration is different or the window hash is different, we'll start a sequence of events to go back in time
@@ -192,8 +210,8 @@ var dsHistory = function() {
 				
 				// we need to set this here so that if history.back() is one of the functions on the eventCache,
 				// it will know we're on a different hash
-				lastHash = window.location.hash;
-				dirtyHash = window.location.hash;
+				lastHash = getEncodedWindowHash();
+				dirtyHash = getEncodedWindowHash();
 			}
 			
 			// subtract 2 from eventCache.length since we're gonna end up calling the second function from the end when someone clicks the
@@ -229,8 +247,8 @@ var dsHistory = function() {
 			if ((lastHash != windowHash && forwardHashCache[forwardHashCache.length - 1] == windowHash) || browser.IE) {
 				if (browser.IE)
 					window.location.hash = forwardHashCache[forwardHashCache.length - 1];
-				lastHash = window.location.hash;
-				dirtyHash = window.location.hash;
+				lastHash = getEncodedWindowHash();
+				dirtyHash = getEncodedWindowHash();
 				hashCache = hashCache.concat(forwardHashCache.splice(forwardHashCache.length - 1, 1));
 			}
 			
@@ -274,16 +292,20 @@ var dsHistory = function() {
 			// with IE, we want to make sure they're a hash entry put into the cache every time we change the frame
 			// since moving back won't change the location hash. we'll use the hash cache to manually change the cache then.
 			if (browser.IE)
-				hashCache.push(window.location.hash);
+				hashCache.push(getEncodedWindowHash());
 			
 			eventCache.push(fnc);
 			updateFrameIteration();
 		},
 		// this will conditionally add or update the name / value that was passed in. it will also add / update the QueryElements object
 		setQueryVar: function(key, value) {
-			// these used to be encoded with encodeURIComponent, but it turns out that encodings are performed automatically.
-			var encodedKey = String(key);
-			var encodedValue = String(typeof value == 'undefined' ? '' : value);
+			var encodedKey, encodedValue;
+			
+			key = String(key);
+			value = String(typeof value == 'undefined' ? '' : value);
+			
+			encodedKey = encodeURIComponent(key);
+			encodedValue = encodeURIComponent(value);
 			
 			if (dirtyHash.indexOf('#') == -1 || dirtyHash.indexOf('#_serial') == 0) {
 				if (encodedValue != '')
@@ -292,7 +314,7 @@ var dsHistory = function() {
 					dirtyHash = '#' + encodedKey;
 			} else {
 				if (typeof this.QueryElements[encodedKey] != 'undefined' && encodedValue != '') {
-					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(this.QueryElements[encodedKey]).length);
+					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(encodeURIComponent(this.QueryElements[key])).length);
 				} else if (typeof this.QueryElements[encodedKey] == 'undefined') {
 					if (encodedValue == '')
 						dirtyHash += '&' + encodedKey;
@@ -301,12 +323,12 @@ var dsHistory = function() {
 				}
 			}
 			
-			this.QueryElements[key] = encodedValue;
+			this.QueryElements[key] = value;
 			
 			if (hashCache > 1 && hashCache[hashCache.length - 2] == dirtyHash)
 				dirtyHash += '_serial=' + hashCache.length;
 			else if (dirtyHash.indexOf('_serial') != -1)
-				removeQueryVar('_serial');
+				this.removeQueryVar('_serial');
 		},
 		// this will remove the property of the QueryElements object and remove the name and value of the object in the dirtyHash
 		removeQueryVar: function(key) {
@@ -315,9 +337,9 @@ var dsHistory = function() {
 			var dataToStrip, indexOfData, removeAmpersand;
 			
 			if (this.QueryElements[key] == '')
-				dataToStrip = key;
+				dataToStrip = encodeURIComponent(key);
 			else
-				dataToStrip = key + '=' + this.QueryElements[key];
+				dataToStrip = encodeURIComponent(key) + '=' + encodeURIComponent(this.QueryElements[key]);
 			
 			indexOfData = dirtyHash.indexOf(dataToStrip);
 			removeAmpersand = dirtyHash[indexOfData + dataToStrip.length] == '&';
@@ -325,7 +347,7 @@ var dsHistory = function() {
 			if (dirtyHash.substr(dirtyHash.length - 1) == '&')
 				dirtyHash = dirtyHash.substr(0, dirtyHash.length - 1);
 			
-			// no need to have the actual ''query' part start with an ampersand if the very first element was removed
+			// no need to have the actual query part start with an ampersand if the very first element was removed
 			if (dirtyHash.indexOf('#&') == 0) dirtyHash = '#' + dirtyHash.substr(2);
 			
 			delete this.QueryElements[key];
@@ -337,7 +359,7 @@ var dsHistory = function() {
 		// we don't want to update the window has until this function is called since, otherwise, the history will change all
 		// the time in Gecko browsers.
 		bindQueryVars: function(fnc, continueProcessing) {
-			if (window.location.hash == dirtyHash) return;
+			if (getEncodedWindowHash() == dirtyHash) return;
 			
 			// if the option to defer processing has been set and 
 			if (options && options.deferProcessing && !continueProcessing) {
@@ -362,10 +384,10 @@ var dsHistory = function() {
 			// so we have an empty hash to go back to on our first time around (but only if we're not using IE since otherwise we're adding
 			// to the hashCache every single time anyway
 			if (hashCache.length == 0 && eventCache.length > 0 && !browser.IE)
-				hashCache.push(window.location.hash);
+				hashCache.push(getEncodedWindowHash());
 				
 			window.location.hash = dirtyHash;
-			lastHash = window.location.hash;
+			lastHash = getEncodedWindowHash();
 			
 			hashCache.push(lastHash);
 			eventCache.push(fnc);
@@ -382,30 +404,31 @@ var dsHistory = function() {
 	};
 	
 	// initialize the library
-	(function() {
-		// we use a frame to track history all the time in IE since window.location.hash doesn't update the history.
-		// in Gecko, we only use a frame to track history when we're not also trying to update the window hash
-		
-		if (supportsDataProtocol)
-			document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="data:,0"></iframe>');
-		else
-			document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
-		
-		frameWindow = window.frames['dsHistoryFrame'];
-		
-		if (browser.IE)
-			hashCache.push(window.location.hash);
-		watcherInterval = window.setInterval(frameWatcher, 15);
-		
-		// initialize the QueryElements object
-		loadQueryVars.call(this);
-		
-		// make sure we don't leave any memory leaks when the visitor leaves
-		if (window.addEventListener)
-			window.addEventListener('unload', unload, false);
-		else if (window.attachEvent)
-			window.attachEvent('onunload', unload);
-	})();
+	
+	// we use a frame to track history all the time in IE since window.location.hash doesn't update the history.
+	// in Gecko, we only use a frame to track history when we're not also trying to update the window hash
+	
+	if (supportsDataProtocol)
+		document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="data:,0"></iframe>');
+	else
+		document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
+	
+	frameWindow = window.frames['dsHistoryFrame'];
+	
+	if (browser.IE)
+		hashCache.push(getEncodedWindowHash());
+	watcherInterval = window.setInterval(frameWatcher, 15);
+	
+	// initialize the QueryElements object
+	loadQueryVars.call(this);
+	
+	// make sure we don't leave any memory leaks when the visitor leaves
+	if (window.addEventListener)
+		window.addEventListener('unload', unload, false);
+	else if (window.attachEvent)
+		window.attachEvent('onunload', unload);
+	
+	// end initialization
 	
 	return returnObject;
 }();
