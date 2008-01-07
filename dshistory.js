@@ -21,16 +21,22 @@
 
 var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
-	var browser = {
-		IE: !!(window.attachEvent && !window.opera),
-		IE6: this.IE && window.navigator.userAgent.indexOf("MSIE 6") != -1,
-		IE7: this.IE && window.navigator.userAgent.indexOf("MSIE 7") != -1,
-		Opera: !!window.opera,
-		WebKit: navigator.userAgent.indexOf('AppleWebKit/') > -1,
-		Gecko: navigator.userAgent.indexOf('Gecko') > -1 && navigator.userAgent.indexOf('KHTML') == -1,
-		GeckoMac: this.Gecko && navigator.userAgent.indexOf("Mac OS X")!=-1,
-		MobileSafari: !!navigator.userAgent.match(/Apple.*Mobile.*Safari/)
-	};
+	var browser = (function() {
+		var userAgent = window.navigator.userAgent;
+		var isIE = !!(window.attachEvent && !window.opera);
+		var isGecko = userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1;
+		
+		return {
+			IE: isIE,
+			IE6: isIE && userAgent.indexOf("MSIE 6") != -1,
+			IE7: isIE && userAgent.indexOf("MSIE 7") != -1,
+			Opera: !!window.opera,
+			WebKit: userAgent.indexOf('AppleWebKit/') > -1,
+			Gecko: isGecko,
+			GeckoMac: isGecko && userAgent.indexOf("Mac OS X")!=-1,
+			MobileSafari: !!userAgent.match(/Apple.*Mobile.*Safari/)
+		};
+	})();
 	var supportsDataProtocol = browser.Opera || browser.WebKit || browser.Gecko;
 	var lastFrameIteration = 0;
 	var lastHash = '';
