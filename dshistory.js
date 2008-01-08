@@ -43,8 +43,10 @@ var dsHistory = function() {
 		};
 	})();
 	var supportsDataProtocol = browser.Opera || browser.WebKit || browser.Gecko;
+	var returnsEncodedWindowHash = browser.IE; // some browsers return the encoded value of the window hash vs the decoded value
 	var lastFrameIteration = 0;
 	var lastHash = '';
+	var encodeURIComponent = window.encodeURIComponent; // close a reference to this function since we'll be calling it so often and since it will be faster than going up the scope each time
 	var dirtyHash = getEncodedWindowHash();
 	var initialHash = getEncodedWindowHash();
 	var hashCache = []; // holds all previous hashes
@@ -77,7 +79,7 @@ var dsHistory = function() {
 			};
 		}
 		
-		readIteration();
+		return readIteration();
 	};
 	// internal function to save the iteration we are on
 	function writeIteration(iteration) {
@@ -94,30 +96,45 @@ var dsHistory = function() {
 		
 		writeIteration(iteration);
 	};
-	// internal function to return the window hash after the keys and values have been run through window.encodeURIComponent
-	function getEncodedWindowHash() {
-		if (window.location.hash == '') return '';
+	// internal function to get the decoded value of a (sub)string from the hash
+	function getDecodedHashValue(value) {
+		if (returnsEncodedWindowHash) {
+			var decodeURIComponent = window.decodeURIComponent;
+			
+			getDecodedHashValue = function(value) {
+				return decodeURIComponent(value);
+			};
+		} else {
+			getDecodedHashValue = function(value) {
+				return value;
+			};
+		}
 		
-		var hashItems = window.location.hash.substring(1).split('&');
+		return getDecodedHashValue(value);
+	};
+	// internal function to return the window hash after the keys and values have been run through encodeURIComponent
+	function getEncodedWindowHash() {
+		var hash = window.location.hash;
+		
+		if (hash == '') return '';
+		
+		var hashItems = hash.substring(1).split('&');
 		var encodedHash;
 		
 		// for performance, we'll assume that if we're doing more than 9 concats that it will be quicker to use and array and then use the .join('&') trick
-		
-		// notice that the hash split for both of these is run through both decodeURIComponent and encodeURIComponent. this is done to strip the item
-		// down to its base form and then re-encode it; it's necessary for IE since the value that is returned from the hash is already encoded
 		if (hashItems.length > 9) {
 			var encodedHashItems = [];
 			
 			for (i = 0; i < hashItems.length; i++) {
 				hashSplit = hashItems[i].split('=');
-				encodedHashItems.push((i == 0 ? '' : '&') + window.encodeURIComponent(window.decodeURIComponent(hashSplit[0])) + (hashSplit.length == 2 ? '=' + window.encodeURIComponent(window.decodeURIComponent(hashSplit[1])) : ''));
+				encodedHashItems.push((i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : ''));
 			}
 			encodedHash = encodedHashItems.join('&');
 		} else {
 			encodedHash = ''
 			for (i = 0; i < hashItems.length; i++) {
 				hashSplit = hashItems[i].split('=');
-				encodedHash += (i == 0 ? '' : '&') + window.encodeURIComponent(window.decodeURIComponent(hashSplit[0])) + (hashSplit.length == 2 ? '=' + window.encodeURIComponent(window.decodeURIComponent(hashSplit[1])) : '');
+				encodedHash += (i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : '');
 			}
 		}
 		
@@ -135,7 +152,7 @@ var dsHistory = function() {
 		
 		for (i = 0; i < hashItems.length; i++) {
 			hashSplit = hashItems[i].split('=');
-			returnObject.QueryElements[window.decodeURIComponent(hashSplit[0])] = hashSplit.length == 2 ? window.decodeURIComponent(hashSplit[1]) : '';
+			returnObject.QueryElements[getDecodedHashValue(hashSplit[0])] = hashSplit.length == 2 ? getDecodedHashValue(hashSplit[1]) : '';
 		}
 		
 		lastHash = getEncodedWindowHash();
@@ -318,8 +335,8 @@ var dsHistory = function() {
 			key = String(key);
 			value = String(typeof value == 'undefined' ? '' : value);
 			
-			encodedKey = window.encodeURIComponent(key);
-			encodedValue = window.encodeURIComponent(value);
+			encodedKey = encodeURIComponent(key);
+			encodedValue = encodeURIComponent(value);
 			
 			if (dirtyHash.indexOf('#') == -1 || dirtyHash.indexOf('#_serial') == 0) {
 				if (encodedValue != '')
@@ -328,7 +345,7 @@ var dsHistory = function() {
 					dirtyHash = '#' + encodedKey;
 			} else {
 				if (typeof this.QueryElements[encodedKey] != 'undefined' && encodedValue != '') {
-					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(window.encodeURIComponent(this.QueryElements[key])).length);
+					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(encodeURIComponent(this.QueryElements[key])).length);
 				} else if (typeof this.QueryElements[encodedKey] == 'undefined') {
 					if (encodedValue == '')
 						dirtyHash += '&' + encodedKey;
@@ -351,9 +368,9 @@ var dsHistory = function() {
 			var dataToStrip, indexOfData, removeAmpersand;
 			
 			if (this.QueryElements[key] == '')
-				dataToStrip = window.encodeURIComponent(key);
+				dataToStrip = encodeURIComponent(key);
 			else
-				dataToStrip = window.encodeURIComponent(key) + '=' + window.encodeURIComponent(this.QueryElements[key]);
+				dataToStrip = encodeURIComponent(key) + '=' + encodeURIComponent(this.QueryElements[key]);
 			
 			indexOfData = dirtyHash.indexOf(dataToStrip);
 			removeAmpersand = dirtyHash[indexOfData + dataToStrip.length] == '&';
@@ -399,7 +416,7 @@ var dsHistory = function() {
 			// to the hashCache every single time anyway
 			if (hashCache.length == 0 && eventCache.length > 0 && !browser.IE)
 				hashCache.push(getEncodedWindowHash());
-				
+			
 			window.location.hash = dirtyHash;
 			lastHash = getEncodedWindowHash();
 			
