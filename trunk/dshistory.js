@@ -1,6 +1,6 @@
 /*
 dsHistory, v1 $Rev$
-Version date: $Date$
+Revision date: $Date$
 Project URL: http://code.google.com/p/dshistory/
 
 Copyright (c) 2007 Andrew Mattie (http://www.akmattie.net)
