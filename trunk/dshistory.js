@@ -45,19 +45,18 @@ var dsHistory = function() {
 	var supportsDataProtocol = browser.Opera || browser.WebKit || browser.Gecko;
 	var returnsEncodedWindowHash = browser.IE; // some browsers return the encoded value of the window hash vs the decoded value
 	var lastFrameIteration = 0;
-	var lastHash = '';
+	var lastHash = lastRawHash = '';
 	var encodeURIComponent = window.encodeURIComponent; // close a reference to this function since we'll be calling it so often and since it will be faster than going up the scope each time
-	var dirtyHash = getEncodedWindowHash();
-	var initialHash = getEncodedWindowHash();
+	var dirtyHash = initialHash = getEncodedWindowHash(true);
 	var hashCache = []; // holds all previous hashes
 	var forwardHashCache = []; // hashes that are removed from hashCache as the user goes back are concat'd here
 	var eventCache = []; // holds all events
 	var forwardEventCache = []; // events that are removed from eventCache as the user goes back are concat'd here
 	var isInHistory = false; // if we're somewhere in the middle of the history stack, this will be set to true
-	var options; // holds the options literal passed into the init function
 	var frameWindow; // since we're going to be looking at the internals of the frame so often, we will cache a reference to it and just unload it when the page unloads
 	var watcherInterval; // save the handle returned by setInterval so we can unregister it on unload
 	var isGoingBackward, isGoingForward; // assists us in knowing whether we're going back through the history or forward
+	var usingStringIndicators = false; // if the developer called dsHistory.setUsingStringIndicators(), this will be set to true
 	var returnObject;
 	
 	// internal function to make sure we don't leave any memory leaks when the visitor leaves
@@ -65,6 +64,19 @@ var dsHistory = function() {
 		window.clearInterval(watcherInterval);
 		delete frameWindow;
 		delete eventCache;
+	};
+	// internal function to curry the scope argument and object argument (if either) so that the subscriber can be called once it's appropriately hit in the
+	// history
+	function internalCurry(fnc, scope, objectArg) {
+		if (typeof objectArg != 'undefined') {
+			return function() {
+				fnc.call(scope || window, objectArg);
+			};
+		} else {
+			return function() {
+				fnc.call(scope || window);
+			};
+		}
 	};
 	// internal function to return the iteration we are on
 	function readIteration() {
@@ -113,10 +125,13 @@ var dsHistory = function() {
 		return getDecodedHashValue(value);
 	};
 	// internal function to return the window hash after the keys and values have been run through encodeURIComponent
-	function getEncodedWindowHash() {
+	function getEncodedWindowHash(forceRecompute) {
 		var hash = window.location.hash;
 		
-		if (hash == '') return '';
+		// there's no need to go through this function again if the hash that was read out (encoded or decoded, doesn't matter) is the same hash that was read out last time.
+		// whenever lastHash is set, it's set to the return value of the function
+		if (!forceRecompute && hash == lastRawHash) return lastHash;
+		lastRawHash = hash;
 		
 		var hashItems = hash.substring(1).split('&');
 		var encodedHash;
@@ -155,7 +170,7 @@ var dsHistory = function() {
 			returnObject.QueryElements[getDecodedHashValue(hashSplit[0])] = hashSplit.length == 2 ? getDecodedHashValue(hashSplit[1]) : '';
 		}
 		
-		lastHash = getEncodedWindowHash();
+		lastHash = getEncodedWindowHash(true);
 	};
 	// internal function to be called when we want to actually add something to the browser's history
 	function updateFrameIteration(comingFromQueryBind) {
@@ -168,6 +183,9 @@ var dsHistory = function() {
 			// splice the event off the stack so we can add it on later
 			lastEvent = eventCache.splice(eventCache.length - 1, 1)[0];
 			
+			// since it's not IE, and since other browsers don't seem to have a performance problem with setting the window hash when there are lots of
+			// elements on a page, we're not going to worry about handling the defer processing attribute here
+			
 			// use the dirty hash here since it's encoded and window.location.hash isn't encoded. otherwise, the history could be updated inadvertently
 			window.location.hash = (lastHash == '' ? '#' : lastHash) + String(hashCache.length); // this can be anything, as long as the hash changes
 			hashCache.push(getEncodedWindowHash());
@@ -176,8 +194,8 @@ var dsHistory = function() {
 			hashCache.push(getEncodedWindowHash());
 			
 			// since we popped off the last event on the history stack, we're going to add it back on _after_ we add on a function to get back to our unadultered hash
-			eventCache.push(function(direction) {
-				if (direction == 'back') {
+			eventCache.push(function(indicator) {
+				if (usingStringIndicators ? indicator : indicator.direction == 'back') {
 					isGoingBackward = true;
 					window.history.back();
 				} else {
@@ -214,7 +232,7 @@ var dsHistory = function() {
 		var frameIteration = readIteration();
 		var windowHash = getEncodedWindowHash();
 		
-		if (isInHistory && hashCache.length > 1 && getEncodedWindowHash() == hashCache[0] && dirtyHash != initialHash)
+		if (isInHistory && hashCache.length > 1 && windowHash == hashCache[0] && dirtyHash != initialHash)
 			dirtyHash = initialHash;
 		
 		// if the frame iteration is different or the window hash is different, we'll start a sequence of events to go back in time
@@ -236,24 +254,30 @@ var dsHistory = function() {
 				forwardHashCache = forwardHashCache.concat(hashCache.splice(hashCache.length - 1, 1));
 				
 				// IE doesn't change the window hash when the user goes back, so we have to do it manually from our hashCache
-				if (browser.IE)
-					window.location.hash = hashCache[hashCache.length - 1];
+				if (browser.IE) {
+					if (this.deferProcessing) {
+						window.setTimeout(function() { window.location.hash = hashCache[hashCache.length - 1]; }, 10);
+					} else {
+						window.location.hash = hashCache[hashCache.length - 1];
+					}
+				}
 				
 				// we need to set this here so that if history.back() is one of the functions on the eventCache,
 				// it will know we're on a different hash
-				lastHash = getEncodedWindowHash();
-				dirtyHash = getEncodedWindowHash();
+				lastHash = getEncodedWindowHash(true);
+				dirtyHash = lastHash;
 			}
 			
 			// subtract 2 from eventCache.length since we're gonna end up calling the second function from the end when someone clicks the
 			// back button. we can assume that another function was pushed onto the stack since the time the function we are going to call was
 			// added. essentially, the last function in the array is the function we are on now, so we need to ignore it in here.
 			
-			// all functions that are pushed onto the history stack should consume the 'true' parameter that indicates that the call
-			// came from here. this is done to prevent the object from pushing itself back onto the history stack a second time.
+			// all functions that are pushed onto the history stack must consume either the 'back' string or, preferrably, the object literal
+			// containing the history event information. this must be done to prevent having the called function from pushing itself back onto
+			// the history stack as soon as it is called.
 			
 			if (eventCache.length > 1) {
-				eventCache[eventCache.length - 2]('back');
+				eventCache[eventCache.length - 2](usingStringIndicators ? 'back' : { calledFromHistory: true, direction: 'back' });
 				forwardEventCache = forwardEventCache.concat(eventCache.splice(eventCache.length - 1, 1));
 			}
 		}
@@ -278,12 +302,13 @@ var dsHistory = function() {
 			if ((lastHash != windowHash && forwardHashCache[forwardHashCache.length - 1] == windowHash) || browser.IE) {
 				if (browser.IE)
 					window.location.hash = forwardHashCache[forwardHashCache.length - 1];
-				lastHash = getEncodedWindowHash();
-				dirtyHash = getEncodedWindowHash();
+				lastHash = getEncodedWindowHash(true);
+				dirtyHash = lastHash;
 				hashCache = hashCache.concat(forwardHashCache.splice(forwardHashCache.length - 1, 1));
 			}
 			
-			forwardEventCache[forwardEventCache.length - 1]('forward');
+			// see the notes above about the called function consuming the argument
+			forwardEventCache[forwardEventCache.length - 1](usingStringIndicators ? 'forward' : { calledFromHistory: true, direction: 'forward' });
 			eventCache = eventCache.concat(forwardEventCache.splice(forwardEventCache.length - 1, 1));
 		}
 		
@@ -293,18 +318,17 @@ var dsHistory = function() {
 	
 	returnObject = {
 		QueryElements: {}, // name/value collection to hold the values in the window hash
-		initialize: function(initOptions) {
+		// if there are a ton of elements on a page, IE can chunk when the window hash is set since, i assume, it's trying to find the element on that
+		// page that has a matching name attribute. while we can't speed it up any, we can at least appear to make it go faster by deferring the hash
+		// setter until the next cycle so that the UI can update
+		deferProcessing: false,
+		initialize: function(initFnc) {
 			// the library itself is actually initialized before the anonymous function that is this library is returned, but we use
-			// this function call both for backwards compatibility as well as for initializing any options that the developer may want
-			// to use
-					
-			if (typeof initOptions == 'object') {
-				options = initOptions;
-				if (typeof options.dispatchFunction == 'function') options.dispatchFunction();
-			}
-			if (typeof initOptions == 'function') initOptions(); // kept for backwards compatibility
+			// this function call both for backwards compatibility
+			
+			if (typeof initFnc == 'function') initFnc();
 		},
-		addFunction: function(fnc) {
+		addFunction: function(fnc, scope, objectArg) {
 			// flush out anything that would have been used for the forward action if the user had used the back action
 			isInHistory = false;
 			forwardEventCache = [];
@@ -325,7 +349,7 @@ var dsHistory = function() {
 			if (browser.IE)
 				hashCache.push(getEncodedWindowHash());
 			
-			eventCache.push(fnc);
+			eventCache.push(internalCurry(fnc, scope, objectArg));
 			updateFrameIteration();
 		},
 		// this will conditionally add or update the name / value that was passed in. it will also add / update the QueryElements object
@@ -389,13 +413,14 @@ var dsHistory = function() {
 		},
 		// we don't want to update the window has until this function is called since, otherwise, the history will change all
 		// the time in Gecko browsers.
-		bindQueryVars: function(fnc, continueProcessing) {
+		bindQueryVars: function(fnc, scope, objectArg, continueProcessing) {
 			if (getEncodedWindowHash() == dirtyHash) return;
 			
-			// if the option to defer processing has been set and 
-			if (options && options.deferProcessing && !continueProcessing) {
+			// if the option to defer processing has been set and our continueProcessing argument has been set, defer the function call to the
+			// next available cycle so that the UI can update and other processing can continue. 
+			if (this.deferProcessing && !continueProcessing) {
 				var currentFnc = arguments.callee;
-				window.setTimeout(function() { currentFnc(fnc, true) }, 10);
+				window.setTimeout(function() { currentFnc(fnc, scope, objectArg, true) }, 10);
 				return;
 			}
 			
@@ -418,19 +443,23 @@ var dsHistory = function() {
 				hashCache.push(getEncodedWindowHash());
 			
 			window.location.hash = dirtyHash;
-			lastHash = getEncodedWindowHash();
+			lastHash = getEncodedWindowHash(true);
 			
 			hashCache.push(lastHash);
-			eventCache.push(fnc);
+			eventCache.push(internalCurry(fnc, scope, objectArg));
 			
 			if (browser.IE)
 				updateFrameIteration(true);
 			
 			loadQueryVars();
 		},
-		setFirstEvent: function(fnc) {
+		setFirstEvent: function(fnc, scope, objectArg) {
 			if (eventCache.length > 0)
-				eventCache[0] = fnc;
+				eventCache[0] = internalCurry(fnc, scope, objectArg);
+		},
+		setUsingStringIndicators: function() {
+			// use a setter function for this deprecated functionality instead of a property so that calls to this function will error once it's removed
+			usingStringIndicators = true;
 		}
 	};
 	
@@ -447,7 +476,7 @@ var dsHistory = function() {
 	frameWindow = window.frames['dsHistoryFrame'];
 	
 	if (browser.IE)
-		hashCache.push(getEncodedWindowHash());
+		hashCache.push(initialHash);
 	watcherInterval = window.setInterval(frameWatcher, 15);
 	
 	// initialize the QueryElements object
