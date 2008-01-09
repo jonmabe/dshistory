@@ -362,7 +362,7 @@ var dsHistory = function() {
 			encodedKey = encodeURIComponent(key);
 			encodedValue = encodeURIComponent(value);
 			
-			if (dirtyHash.indexOf('#') == -1 || dirtyHash.indexOf('#_serial') == 0) {
+			if (dirtyHash == '#' || dirtyHash == '' || dirtyHash.indexOf('#_serial') == 0) {
 				if (encodedValue != '')
 					dirtyHash = '#' + encodedKey + '=' + encodedValue;
 				else
