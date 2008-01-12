@@ -69,12 +69,12 @@ var dsHistory = function() {
 	// history
 	function internalCurry(fnc, scope, objectArg) {
 		if (typeof objectArg != 'undefined') {
-			return function() {
-				fnc.call(scope || window, objectArg);
+			return function(historyObj) {
+				fnc.call(scope || window, objectArg, historyObj);
 			};
 		} else {
-			return function() {
-				fnc.call(scope || window);
+			return function(historyObj) {
+				fnc.call(scope || window, historyObj);
 			};
 		}
 	};
