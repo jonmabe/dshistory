@@ -2,78 +2,66 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-<title>Usage</title>
-<script type="text/javascript" src="dshistory.js"></script>
-<script type="text/javascript">
-var HistoryDriver = {
-	boundFunctions: 0,
-	boundQueryVars: 0,
-	addedQueryVars: 0,
-	addBaseFunction: function() {
-		dsHistory.addFunction(function() {
-			// base function -- won't ever hit forward here
-			document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
-			alert('My base function');
-		});
-	},
-	addFunction: function() {
-		var functionToEval = document.getElementById('txtAddFunction').value;
-		var stackElement = document.createElement('span');
-		
-		stackElement.innerHTML = '&nbsp;&nbsp;<b>--></b> <em>Fnc:</em> ' + functionToEval;
-		document.getElementById('StackLocation').appendChild(stackElement);
-		this.boundFunctions++;
-		document.getElementById('txtAddFunction').value = 'alert(\'Hola ' + String(this.boundFunctions) + '\');';
-		
-		dsHistory.addFunction(function(functionToEval, stackElement) {
-			return function(direction) {
-				if (direction == 'back')
+<title>Demo 1</title>
+<script src="../dsHistory.js"></script>
+<script>
+var HistoryDriver = function() {
+	var boundFunctions = boundQueryVars = addedQueryVars = 0;
+	var returnObj;
+	
+	returnObj = {
+		addFunction: function() {
+			var functionToEval = document.getElementById('txtAddFunction').value;
+			var stackElement = document.createElement('span');
+			
+			stackElement.innerHTML = '&nbsp;&nbsp;<b>--></b> <em>Fnc:</em> ' + functionToEval;
+			document.getElementById('StackLocation').appendChild(stackElement);
+			boundFunctions++;
+			document.getElementById('txtAddFunction').value = 'alert(\'Hola ' + String(boundFunctions) + '\');';
+			
+			dsHistory.addFunction(function(evalArgs, historyIndicator) {
+				if (historyIndicator.direction == 'back')
 					document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
-				else if (direction == 'forward')
-					document.getElementById('StackLocation').appendChild(stackElement);
-				eval(functionToEval);
-			};
-		}.call(window, functionToEval, stackElement));
-	},
-	setQueryVar: function() {
-		dsHistory.setQueryVar(document.getElementById('txtSetQueryVarKey').value, document.getElementById('txtSetQueryVarValue').value);
-		this.addedQueryVars++;
-		document.getElementById('txtSetQueryVarKey').value = 'key #' + String(this.addedQueryVars);
-		document.getElementById('txtRemoveQueryVarKey').value = 'key #' + String(this.addedQueryVars - 1);
-	},
-	removeQueryVar: function() {
-		dsHistory.removeQueryVar(document.getElementById('txtRemoveQueryVarKey').value);
-	},
-	bindQueryVars: function () {
-		var functionToEval = document.getElementById('txtBindQueryVars').value;
-		var stackElement = document.createElement('span');
-		
-		if (window.location.hash == dsHistory.dirtyHash) {
-			alert('You have to change the hash before you can re-bind it.');
-			return;
+				else if (historyIndicator.direction == 'forward')
+					document.getElementById('StackLocation').appendChild(evalArgs.stackElement);
+				eval(evalArgs.functionToEval);
+			}, window, {functionToEval: functionToEval, stackElement: stackElement});
+		},
+		setQueryVar: function() {
+			dsHistory.setQueryVar(document.getElementById('txtSetQueryVarKey').value, document.getElementById('txtSetQueryVarValue').value);
+			addedQueryVars++;
+			document.getElementById('txtSetQueryVarKey').value = 'key #' + String(addedQueryVars);
+			document.getElementById('txtRemoveQueryVarKey').value = 'key #' + String(addedQueryVars - 1);
+		},
+		removeQueryVar: function() {
+			dsHistory.removeQueryVar(document.getElementById('txtRemoveQueryVarKey').value);
+		},
+		bindQueryVars: function () {
+			var functionToEval = document.getElementById('txtBindQueryVars').value;
+			var stackElement = document.createElement('span');
+			
+			if (window.location.hash == dsHistory.dirtyHash) {
+				alert('You have to change the hash before you can re-bind it.');
+				return;
+			}
+			
+			stackElement.innerHTML = '&nbsp;&nbsp;--> <em>QueryVar</em>: ' + functionToEval;
+			document.getElementById('StackLocation').appendChild(stackElement);
+			boundQueryVars++;
+			document.getElementById('txtBindQueryVars').value = 'alert(\'Query ' + String(boundQueryVars) + '\');';
+			
+			dsHistory.bindQueryVars(function(evalArgs, historyIndicator) {
+				if (historyIndicator.direction == 'back')
+					document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
+				else if (historyIndicator.direction == 'forward')
+					document.getElementById('StackLocation').appendChild(evalArgs.stackElement);
+				eval(evalArgs.functionToEval);
+			}, window, {functionToEval: functionToEval, stackElement: stackElement});
 		}
-		
-		stackElement.innerHTML = '&nbsp;&nbsp;--> <em>QueryVar</em>: ' + functionToEval;
-		document.getElementById('StackLocation').appendChild(stackElement);
-		this.boundQueryVars++;
-		document.getElementById('txtBindQueryVars').value = 'alert(\'Query ' + String(this.boundQueryVars) + '\');';
-		
-		dsHistory.bindQueryVars(function(functionToEval, stackElement) {
-			return function(direction) {
-				if (direction == 'back')
-					document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
-				else if (direction == 'forward')
-					document.getElementById('StackLocation').appendChild(stackElement);
-				eval(functionToEval);
-			};
-		}.call(window, functionToEval, stackElement));
 	}
-}
-
-if (window.addEventListener)
-	window.addEventListener('load', HistoryDriver.addBaseFunction, false);
-else if (window.attachEvent)
-	window.attachEvent('onload', HistoryDriver.addBaseFunction);
+	
+	return returnObj;
+}();
 </script>
 <style type="text/css">
 body
@@ -185,8 +173,13 @@ h3
 	</div>
 </div>
 
-<script type="text/javascript">
-dsHistory.initialize();
+<script>
+dsHistory.addFunction(function() {
+	// base function -- won't ever hit forward here
+	document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
+	alert('My base function');
+});
 </script>
+
 </body>
 </html>

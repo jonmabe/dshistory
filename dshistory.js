@@ -54,6 +54,9 @@ var dsHistory = function() {
 	var forwardEventCache = []; // events that are removed from eventCache as the user goes back are concat'd here
 	var isInHistory = false; // if we're somewhere in the middle of the history stack, this will be set to true
 	var frameWindow; // since we're going to be looking at the internals of the frame so often, we will cache a reference to it and just unload it when the page unloads
+	// if the reference to this script file is included in the head tag, frameWindow won't be set up properly. this will be a reference to the setInterval that will ultimately set up frameWindow in that case
+	var frameWindowWatcher;
+	var executionQueue = []; // if the frameWindow wasn't set up on load, we need a place to queue up actions until it's available
 	var watcherInterval; // save the handle returned by setInterval so we can unregister it on unload
 	var isGoingBackward, isGoingForward; // assists us in knowing whether we're going back through the history or forward
 	var usingStringIndicators = false; // if the developer called dsHistory.setUsingStringIndicators(), this will be set to true
@@ -140,14 +143,14 @@ var dsHistory = function() {
 		if (hashItems.length > 9) {
 			var encodedHashItems = [];
 			
-			for (i = 0; i < hashItems.length; i++) {
+			for (i = 0, len = hashItems.length; i < len; ++i) {
 				hashSplit = hashItems[i].split('=');
 				encodedHashItems.push((i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : ''));
 			}
 			encodedHash = encodedHashItems.join('&');
 		} else {
 			encodedHash = ''
-			for (i = 0; i < hashItems.length; i++) {
+			for (i = 0, len = hashItems.length; i < len; ++i) {
 				hashSplit = hashItems[i].split('=');
 				encodedHash += (i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : '');
 			}
@@ -165,7 +168,7 @@ var dsHistory = function() {
 		var hashItems = window.location.hash.substring(1).split('&');
 		var hashSplit;
 		
-		for (i = 0; i < hashItems.length; i++) {
+		for (i = 0, len = hashItems.length; i < len; ++i) {
 			hashSplit = hashItems[i].split('=');
 			returnObject.QueryElements[getDecodedHashValue(hashSplit[0])] = hashSplit.length == 2 ? getDecodedHashValue(hashSplit[1]) : '';
 		}
@@ -329,6 +332,10 @@ var dsHistory = function() {
 			if (typeof initFnc == 'function') initFnc();
 		},
 		addFunction: function(fnc, scope, objectArg) {
+			if (!frameWindow) {
+				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
+				return;
+			}
 			// flush out anything that would have been used for the forward action if the user had used the back action
 			isInHistory = false;
 			forwardEventCache = [];
@@ -414,6 +421,10 @@ var dsHistory = function() {
 		// we don't want to update the window has until this function is called since, otherwise, the history will change all
 		// the time in Gecko browsers.
 		bindQueryVars: function(fnc, scope, objectArg, continueProcessing) {
+			if (!frameWindow) {
+				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
+				return;
+			}
 			if (getEncodedWindowHash() == dirtyHash) return;
 			
 			// if the option to defer processing has been set and our continueProcessing argument has been set, defer the function call to the
@@ -474,10 +485,26 @@ var dsHistory = function() {
 		document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
 	
 	frameWindow = window.frames['dsHistoryFrame'];
+	if (!frameWindow) {
+		frameWindowWatcher = window.setInterval(function() {
+			frameWindow = window.frames['dsHistoryFrame'];
+			if (frameWindow) {
+				window.clearInterval(frameWindowWatcher);
+				watcherInterval = window.setInterval(frameWatcher, 15);
+				
+				for (i = 0, len = executionQueue.length; i < len; ++i) {
+					var executionItem = executionQueue[i];
+					executionItem.type(executionItem.fnc, executionItem.scope, executionItem.objectArg);
+				}
+				delete executionQueue;
+			}
+		}, 50);
+	} else {
+		watcherInterval = window.setInterval(frameWatcher, 15);
+	}
 	
 	if (browser.IE)
 		hashCache.push(initialHash);
-	watcherInterval = window.setInterval(frameWatcher, 15);
 	
 	// initialize the QueryElements object
 	loadQueryVars.call(this);
