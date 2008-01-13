@@ -1,0 +1,3 @@
+#summary Some examples of how you can use dsHistory in your app
+
+===Example 1===
