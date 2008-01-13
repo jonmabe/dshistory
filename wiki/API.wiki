@@ -1,0 +1,30 @@
+#summary A summary of the public properties and methods of dsHistory
+#labels Phase-Implementation
+
+===Properties===
+
+*deferProcessing*: It seems that updating / setting the window hash can sometimes make IE really chug when the page has tons of elements on it. My best guess is that IE looks for an `a` tag on the page that has a `name` attribute with the value of the hash, and for some reason has a hard time with it. By setting `dsHistory.deferProcessing = true`, the window hash will actually be set in a separate function which is deferred to execute when the calling function is finished. While this doesn't actually speed anything up, it can make things appear faster since a UI update can take place in between the execution of the two functions.
+
+*QueryElements*: The `QueryElements` object holds all of the keys and values reflected in the window hash. See Using.
+
+===Methods===
+
+*addFunction*: Adds a new function to the internal history stack. Accepts three arguments.
+
+  *`functionToAdd`: The function to add to the stack.
+  *`scope`: The scope that `functionToAdd` will be called in.
+  *`objectArg`: An arbitrary object to pass to `functionToAdd`. If you have more than one object that you want to pass, make then properties of `objectArg`.
+
+*bindQueryVars*: Updates the window hash with the keys and values set with `setQueryVar` and adds a new function to the internal history stack. Accepts the same exact arguments as addFunction.
+
+*initialize*: Exists for backward compatibility at the moment, but not deprecated. Ultimately, it will likely accept an object literal containing properties to initialize dsHistory for other browsers.
+
+*removeQueryVar*: Removes a key and value from the window hash, but doesn't updated it. Accepts one argument.
+
+  *`key`: The key (and value of that key) to ultimately remove from the window hash.
+
+*setFirstEvent*:
+
+*setQueryVar*:
+
+*setUsingStringIndicators*:
