@@ -1,5 +1,5 @@
 /*
-dsHistory, v1 $Rev$
+dsHistory, v1-pre $Rev$
 Revision date: $Date$
 Project URL: http://code.google.com/p/dshistory/
 
@@ -255,7 +255,7 @@ var dsHistory = function() {
 				
 				// IE doesn't change the window hash when the user goes back, so we have to do it manually from our hashCache
 				if (browser.IE) {
-					if (this.deferProcessing) {
+					if (returnObject.deferProcessing) {
 						window.setTimeout(function() { window.location.hash = hashCache[hashCache.length - 1]; }, 10);
 					} else {
 						window.location.hash = hashCache[hashCache.length - 1];
