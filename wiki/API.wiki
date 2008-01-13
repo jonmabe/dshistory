@@ -5,7 +5,7 @@
 
   * *deferProcessing*: It seems that updating / setting the window hash can sometimes make IE really chug when the page has tons of elements on it. My best guess is that IE looks for an `a` tag on the page that has a `name` attribute with the value of the hash, and for some reason has a hard time with it. By setting `dsHistory.deferProcessing = true`, the window hash will actually be set in a separate function which is deferred to execute when the calling function is finished. While this doesn't actually speed anything up, it can make things appear faster since a UI update can take place in between the execution of the two functions.
 
-  * *!QueryElements*: The `QueryElements` object holds all of the keys and values reflected in the window hash. See Using.
+  * *!QueryElements*: The `QueryElements` object holds all of the keys and values reflected in the window hash.
 
 ===Methods===
 
@@ -18,11 +18,13 @@
 
   * *initialize*: Exists for backward compatibility at the moment, but not deprecated. Ultimately, it will likely accept an object literal containing properties to initialize dsHistory for other browsers.
 
-  * *removeQueryVar*: Removes a key and value from the window hash, but doesn't updated it. Accepts one argument.
+  * *removeQueryVar*: Queues a key and it's value to be removed from the window hash, but doesn't actually update it. Accepts one argument.
     # `key`: The key (and value of that key) to ultimately remove from the window hash.
 
-  * *setFirstEvent*:
+  * *setFirstEvent*: Once the base function is added, it can't be removed or changed without calling this function. You shouldn't need to change the base function, but if you do, you can use this method. Accepts the same exact arguments as addFunction.
 
-  * *setQueryVar*:
+  * *setQueryVar*: Queues a key and value pair to be added to the window hash, but doesn't actually update it. Accepts two arguments:
+    # `key`: The key of the hash item.
+    # `value`: The value of the hash item.
 
-  * *setUsingStringIndicators*:
+  * *setUsingStringIndicators*: Deprecated. Provided for backward compatibility, but will be removed by v1.0 final.
