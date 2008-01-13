@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+
 var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
 	var browser = (function() {
