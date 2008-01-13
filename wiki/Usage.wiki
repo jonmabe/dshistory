@@ -1,4 +1,5 @@
 #summary A quick how-to guide for using dsHistory
+#labels Featured,Phase-Implementation
 
 dsHistory was designed to be extremely easy to use. All that is really required for one to implement dsHistory into their own project is some moderate !JavaScript skills and a desire to improve accessibility throughout their site. To get started, follow the instructions below. If you're super-cool, you can just skip to the bottom of this writeup to see an example.
 
@@ -11,6 +12,8 @@ dsHistory was designed to be extremely easy to use. All that is really required 
 *base state*: The initial state of your application is it's base state. If a user is visiting your app for the first time, the base state will be your app in whatever regard you deem it to be completely reset to the beginning. If the user is visiting a bookmark where the third tab is specified, your base state will have the third tab open.
 
 *base function*: The first function you add to the history stack through dsHistory is your base function. The base function should contain everything necessary to reset your app back to the base state.
+
+
 
 ===Step 1===
 
