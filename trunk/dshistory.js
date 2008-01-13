@@ -375,10 +375,10 @@ var dsHistory = function() {
 				else
 					dirtyHash = '#' + encodedKey;
 			} else {
-				if (typeof this.QueryElements[encodedKey] != 'undefined' && encodedValue != '') {
+				if (typeof this.QueryElements[key] != 'undefined' && value != '') {
 					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(encodeURIComponent(this.QueryElements[key])).length);
-				} else if (typeof this.QueryElements[encodedKey] == 'undefined') {
-					if (encodedValue == '')
+				} else if (typeof this.QueryElements[key] == 'undefined') {
+					if (value == '')
 						dirtyHash += '&' + encodedKey;
 					else
 						dirtyHash += '&' + encodedKey + '=' + encodedValue;
@@ -425,7 +425,8 @@ var dsHistory = function() {
 				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
 				return;
 			}
-			if (getEncodedWindowHash() == dirtyHash) return;
+			// if desired, one could check if the result of this function is === false and operate accordingly. shouldn't really be necessary though
+			if (getEncodedWindowHash() == dirtyHash.replace('#', '')) return false; // dirty hash will always be encoded, so replace('#', '') will only replace the inital # if it's there
 			
 			// if the option to defer processing has been set and our continueProcessing argument has been set, defer the function call to the
 			// next available cycle so that the UI can update and other processing can continue. 
