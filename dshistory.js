@@ -508,7 +508,7 @@ var dsHistory = function() {
 		hashCache.push(initialHash);
 	
 	// initialize the QueryElements object
-	loadQueryVars.call(this);
+	loadQueryVars();
 	
 	// make sure we don't leave any memory leaks when the visitor leaves
 	if (window.addEventListener)
