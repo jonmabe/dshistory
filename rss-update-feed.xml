@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<rss version="2.0">
+  <channel>
+    <title>dsHistory Browser History Manager :: Project Update Feed</title>
+    <link>http://code.google.com/p/dshistory/</link>
+    <item>
+       <title>dsHistory, v1-pre r32</title>
+       <link>http://code.google.com/p/dshistory/</link>
+       <description><![CDATA[New home, much better performance, plenty of bug fixes, complete documentation, and more!]]></description>
+    </item>
+  </channel>
+</rss>
