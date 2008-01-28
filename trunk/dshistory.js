@@ -29,7 +29,6 @@ var dsHistory = function() {
 	var browser = (function() {
 		var userAgent = window.navigator.userAgent;
 		var isIE = !!(window.attachEvent && !window.opera);
-		var isGecko = userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1;
 		
 		return {
 			IE: isIE,
@@ -37,13 +36,12 @@ var dsHistory = function() {
 			IE7: isIE && userAgent.indexOf("MSIE 7") != -1,
 			Opera: !!window.opera,
 			WebKit: userAgent.indexOf('AppleWebKit/') > -1,
-			Gecko: isGecko,
-			GeckoMac: isGecko && userAgent.indexOf("Mac OS X")!=-1,
-			MobileSafari: !!userAgent.match(/Apple.*Mobile.*Safari/)
+			Gecko: userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1
 		};
 	})();
 	var supportsDataProtocol = browser.Opera || browser.WebKit || browser.Gecko;
-	var returnsEncodedWindowHash = browser.IE; // some browsers return the encoded value of the window hash vs the decoded value
+	var supportsChangingHistoryViaFrame = browser.IE || browser.Gecko;
+	var returnsEncodedWindowHash = browser.IE || browser.WebKit; // some browsers return the encoded value of the window hash vs the decoded value
 	var lastFrameIteration = 0;
 	var lastHash = lastRawHash = '';
 	var encodeURIComponent = window.encodeURIComponent; // close a reference to this function since we'll be calling it so often and since it will be faster than going up the scope each time
@@ -86,7 +84,7 @@ var dsHistory = function() {
 		// lazy function definition pattern used for performance
 		if (supportsDataProtocol) {
 			readIteration = function() {
-				return parseInt(frameWindow.document.body.textContent);
+				return frameWindow.document.body ? parseInt(frameWindow.document.body.textContent) : 0;
 			};
 		} else {
 			readIteration = function() {
@@ -182,7 +180,7 @@ var dsHistory = function() {
 		
 		// it seems that gecko has a sweet bug / feature / something that prevents the history from changing with a frame iteration after a hash has changed the history
 		// therefore, we have to mess with the hash enough to get it to add to the browser's history and then change it back so we don't screw up any values in the hash
-		if (hashCache.length > 0 && !browser.IE) {
+		if ( (hashCache.length > 0 && browser.Gecko) || (!supportsChangingHistoryViaFrame && readIteration() > 0) ) {
 			// splice the event off the stack so we can add it on later
 			lastEvent = eventCache.splice(eventCache.length - 1, 1)[0];
 			
@@ -235,8 +233,8 @@ var dsHistory = function() {
 		var frameIteration = readIteration();
 		var windowHash = getEncodedWindowHash();
 		
-		if (isInHistory && hashCache.length > 1 && windowHash == hashCache[0] && dirtyHash != initialHash)
-			dirtyHash = initialHash;
+		//if (isInHistory && hashCache.length > 1 && windowHash == hashCache[0] && dirtyHash != initialHash)
+			//dirtyHash = initialHash;
 		
 		// if the frame iteration is different or the window hash is different, we'll start a sequence of events to go back in time
 		if (
@@ -332,7 +330,7 @@ var dsHistory = function() {
 			if (typeof initFnc == 'function') initFnc();
 		},
 		addFunction: function(fnc, scope, objectArg) {
-			if (!frameWindow) {
+			if (!frameWindow || !frameWindow.document || !frameWindow.document.body) {
 				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
 				return;
 			}
@@ -421,7 +419,7 @@ var dsHistory = function() {
 		// we don't want to update the window has until this function is called since, otherwise, the history will change all
 		// the time in Gecko browsers.
 		bindQueryVars: function(fnc, scope, objectArg, continueProcessing) {
-			if (!frameWindow) {
+			if (!frameWindow || !frameWindow.document || !frameWindow.document.body) {
 				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
 				return;
 			}
@@ -486,10 +484,10 @@ var dsHistory = function() {
 		document.write('<iframe id="dsHistoryFrame" name="dsHistoryFrame" style="display:none" src="javascript:document.open();document.write(\'0\');document.close();"></iframe>');
 	
 	frameWindow = window.frames['dsHistoryFrame'];
-	if (!frameWindow) {
+	if (!frameWindow || !frameWindow.document || !frameWindow.document.body) {
 		frameWindowWatcher = window.setInterval(function() {
 			frameWindow = window.frames['dsHistoryFrame'];
-			if (frameWindow) {
+			if (frameWindow && frameWindow.document && frameWindow.document.body) {
 				window.clearInterval(frameWindowWatcher);
 				watcherInterval = window.setInterval(frameWatcher, 15);
 				
@@ -504,7 +502,7 @@ var dsHistory = function() {
 		watcherInterval = window.setInterval(frameWatcher, 15);
 	}
 	
-	if (browser.IE)
+	if (browser.IE || !supportsChangingHistoryViaFrame)
 		hashCache.push(initialHash);
 	
 	// initialize the QueryElements object
