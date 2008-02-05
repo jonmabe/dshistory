@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Demo 1</title>
+<script src="../dshistory.js"></script>
+<script>
+var HistoryDriver = function() {
+	var boundFunctions = boundQueryVars = addedQueryVars = 0;
+	var returnObj;
+	
+	returnObj = {
+		addFunction: function() {
+			var functionToEval = document.getElementById('txtAddFunction').value;
+			var stackElement = document.createElement('span');
+			
+			stackElement.innerHTML = '&nbsp;&nbsp;<b>--></b> <em>Fnc:</em> ' + functionToEval;
+			document.getElementById('StackLocation').appendChild(stackElement);
+			boundFunctions++;
+			document.getElementById('txtAddFunction').value = 'alert(\'Hola ' + String(boundFunctions) + '\');';
+			
+			dsHistory.addFunction(function(evalArgs, historyIndicator) {
+				if (historyIndicator.direction == 'back')
+					document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
+				else if (historyIndicator.direction == 'forward')
+					document.getElementById('StackLocation').appendChild(evalArgs.stackElement);
+				eval(evalArgs.functionToEval);
+			}, window, {functionToEval: functionToEval, stackElement: stackElement});
+		},
+		setQueryVar: function() {
+			dsHistory.setQueryVar(document.getElementById('txtSetQueryVarKey').value, document.getElementById('txtSetQueryVarValue').value);
+			addedQueryVars++;
+			document.getElementById('txtSetQueryVarKey').value = 'key #' + String(addedQueryVars);
+			document.getElementById('txtRemoveQueryVarKey').value = 'key #' + String(addedQueryVars - 1);
+		},
+		removeQueryVar: function() {
+			dsHistory.removeQueryVar(document.getElementById('txtRemoveQueryVarKey').value);
+		},
+		bindQueryVars: function () {
+			var functionToEval = document.getElementById('txtBindQueryVars').value;
+			var stackElement = document.createElement('span');
+			var bindResult;
+			
+			bindResult = dsHistory.bindQueryVars(function(evalArgs, historyIndicator) {
+				if (historyIndicator.direction == 'back')
+					document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
+				else if (historyIndicator.direction == 'forward')
+					document.getElementById('StackLocation').appendChild(evalArgs.stackElement);
+				eval(evalArgs.functionToEval);
+			}, window, {functionToEval: functionToEval, stackElement: stackElement});
+			
+			if (bindResult === false) {
+				alert('You have to change the hash before you can re-bind it.');
+				return;
+			}
+			
+			stackElement.innerHTML = '&nbsp;&nbsp;--> <em>QueryVar</em>: ' + functionToEval;
+			document.getElementById('StackLocation').appendChild(stackElement);
+			boundQueryVars++;
+			document.getElementById('txtBindQueryVars').value = 'alert(\'Query ' + String(boundQueryVars) + '\');';
+			
+			
+		}
+	}
+	
+	return returnObj;
+}();
+
+dsHistory.addFunction(function() {
+	// base function -- won't ever hit forward here
+	document.getElementById('StackLocation').removeChild(document.getElementById('StackLocation').lastChild);
+	alert('My base function');
+});
+</script>
+<style type="text/css">
+body
+{
+	font-family: Verdana;
+	font-size: .8em;
+	line-height: 1.3em;
+	background-color: white;
+}
+input
+{
+	padding: 1px 4px;
+	margin: 0px 4px -2px 4px;
+	height: 14px;
+	font-family: Courier New;
+	border: 1px solid DarkGrey;
+}
+a.SubAction
+{
+	color: blue;
+}
+a.BindingAction
+{
+	font-weight: bold;
+	color: DarkBlue;
+}
+h3
+{
+	font-weight: bold;
+	margin-bottom: 4px;
+	font-size: 1em;
+	padding: 0;
+}
+.Section
+{
+	margin-bottom: 30px;
+	padding-bottom: 30px;
+	border-bottom: 1px solid #CCC;
+}
+.InlineCode
+{
+	font-family: Courier New;
+	padding: 2px 2px;
+	background-color: #F8F8F8;
+}
+.CodeWrapper
+{
+	padding-bottom: 10px;
+}
+</style>
+</head>
+<body>
+
+<div style="width: 800px; margin: 30px auto;">
+	<div class="Section">
+		<h3>Using dsHistory Is Easy!</h3>
+		<br />
+		If you really want to know how to use dsHistory in your own app, please check out the <a href="http://code.google.com/p/dshistory/wiki/Usage">Usage wiki</a> on Google Code. Otherwise, take a look at the quick overview below and then look at the page source to see how this demo uses it.
+		<br /><br />
+		To get started, just call <span class="InlineCode">dsHistory.addFunction(functionToCall, functionScope, arbitraryArgPassedToFunction)</span> to add a function to the history stack. If you want to add a name / value pair to the history stack, just call <span class="InlineCode">dsHistory.setQueryVar('name', 'value')</span>. To remove a name / value pair from the history stack, call <span class="InlineCode">dsHistory.removeQueryVar('name')</span>; the value will come with it. Once you're finished adding to and removing from the window hash, you can update it in the browser and bind a history event and function to it using <span class="InlineCode">dsHistory.bindQueryVars(functionToCall, functionScope, arbitraryArgPassedToFunction)</span>.
+		<br /><br />
+		Keep in mind that dsHistory is only meant to be used once there are two functions on the history stack. Therefore, you'll need to add your first function to the stack at some point before the UI has finished loading and before the user has had a chance to interact with your app. In other words, when the visitor hits the back button, we are assuming that the function at the top of the stack is our <em>current</em> position and so it always calls the second-to-last function. Because dsHistory uses an execution queue to spool up all of your <span class="InlineCode">addFunction</span> and <span class="InlineCode">bindQueryVars</span> calls actions until everything in the library has initialized, you don't have to worry about waiting for the internals of dsHistory to finish loading before you start using it.
+		<br /><br />
+		It's easy -- try it out below!
+	</div>
+	
+	<div class="Section">
+		<h3>Where are we in the stack?</h3>
+		
+		<div id="StackLocation"><span><em>alert('My base function');</em></span></div>
+	</div>
+	
+	<div class="Section">
+		<h3>Add a simple function to the history stack...</h3>
+		
+		<div class="CodeWrapper">
+			<span class="InlineCode">dsHistory.addFunction(function() { <input id="txtAddFunction" type="textbox" value="alert('Hola 0');" /> });</span>
+			&nbsp;<a class="BindingAction" href="javascript:HistoryDriver.addFunction();">Add Function</a>
+		</div>
+	</div>
+	
+	<div class="Section">
+		<h3>Add / removing / binding query vars...</h3>
+		
+		<div class="CodeWrapper">
+			<span class="InlineCode">dsHistory.setQueryVar('<input id="txtSetQueryVarKey" type="textbox" value="key #0" />', '<input id="txtSetQueryVarValue" type="textbox" value="value!" />'});</span>
+			&nbsp;<a class="SubAction" href="javascript:HistoryDriver.setQueryVar();">Set	 Name-Value</a>
+		</div>
+		<div class="CodeWrapper">
+			<span class="InlineCode">dsHistory.removeQueryVar('<input id="txtRemoveQueryVarKey" type="textbox" value="key #0" />'});</span>
+			&nbsp;<a class="SubAction" href="javascript:HistoryDriver.removeQueryVar();">Remove Name-Value</a>
+		</div>
+		<div class="CodeWrapper">
+			<span class="InlineCode">dsHistory.bindQueryVars(function() { <input id="txtBindQueryVars" type="textbox" value="alert('Query 0');" /> });</span>
+			&nbsp;<a class="BindingAction" href="javascript:HistoryDriver.bindQueryVars();">Bind Query Vars</a>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-1620658-2");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+
+</body>
+</html>
