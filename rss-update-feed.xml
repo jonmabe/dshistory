@@ -9,5 +9,10 @@
        <link>http://code.google.com/p/dshistory/</link>
        <description><![CDATA[New home, much better performance, plenty of bug fixes, complete documentation, and more!]]></description>
     </item>
+    <item>
+       <title>dsHistory, v1-beta1</title>
+       <link>http://code.google.com/p/dshistory/</link>
+       <description><![CDATA[Bug fix for Gecko when trying to add function to stack after bindQueryVars was called and back button had been clicked. Safari 3 support has been added.]]></description>
+    </item>
   </channel>
 </rss>
