@@ -75,4 +75,4 @@ Now, let's say you want to do the same thing but support bookmarking. You can do
 
 ===Working Demo===
 
-If you want to see a working demo, go ahead and [http://dshistory.googlecode.com/svn/tags/v1-pre-r32/examples/demo.html take a look].
+If you want to see a working demo, go ahead and [http://dshistory.googlecode.com/svn/tags/v1-beta1/examples/demo.html take a look].
