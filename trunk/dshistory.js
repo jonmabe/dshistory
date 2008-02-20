@@ -1,11 +1,11 @@
 /*!
  * dsHistory, v1-beta1 $Rev$
-* Revision date: $Date$
-* Project URL: http://code.google.com/p/dshistory/
-* 
-* Copyright (c) Andrew Mattie (http://www.akmattie.net)
-* Licensed under the MIT License (http://www.opensource.org/licenses/mit-license.php)
-*/
+ * Revision date: $Date$
+ * Project URL: http://code.google.com/p/dshistory/
+ * 
+ * Copyright (c) Andrew Mattie (http://www.akmattie.net)
+ * Licensed under the MIT License (http://www.opensource.org/licenses/mit-license.php)
+ */
 
 var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
