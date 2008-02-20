@@ -5,6 +5,7 @@
  * 
  * Copyright (c) Andrew Mattie (http://www.akmattie.net)
  * Licensed under the MIT License (http://www.opensource.org/licenses/mit-license.php)
+ * THIS IS FREE SOFTWARE, BUT DO NOT REMOVE THIS COMMENT BLOCK
  */
 
 var dsHistory = function() {
