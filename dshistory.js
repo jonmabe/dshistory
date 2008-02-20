@@ -66,7 +66,11 @@ var dsHistory = function() {
 	// internal function to return the iteration we are on
 	function readIteration() {
 		// lazy function definition pattern used for performance
-		if (supportsDataProtocol) {
+		if (!supportsChangingHistoryViaFrame) {
+			readIteration = function() {
+				return 0;
+			};
+		} else if (supportsDataProtocol) {
 			readIteration = function() {
 				return frameWindow.document.body ? parseInt(frameWindow.document.body.textContent) : 0;
 			};
@@ -159,7 +163,7 @@ var dsHistory = function() {
 	};
 	// internal function to be called when we want to actually add something to the browser's history
 	function updateFrameIteration(comingFromQueryBind) {
-		var currentIteration = readIteration();
+		var currentIteration = supportsChangingHistoryViaFrame ? readIteration() : 0;
 		var lastEvent, newEvent;
 		
 		// it seems that gecko has a sweet bug / feature / something that prevents the history from changing with a frame iteration after a hash has changed the history
@@ -218,9 +222,7 @@ var dsHistory = function() {
 	};
 	// internal function that is called every few ms to check to see if we've gone back or forward in time
 	function fluxCapacitor() {
-		if (!frameWindow.document) return; // don't worry about watching the frame until this is initialized
-		
-		var frameIteration = readIteration();
+		var frameIteration = supportsChangingHistoryViaFrame ? readIteration() : 0;
 		var windowHash = getEncodedWindowHash();
 		
 		//if (isInHistory && hashCache.length > 1 && windowHash == hashCache[0] && dirtyHash != initialHash)
@@ -320,7 +322,7 @@ var dsHistory = function() {
 			if (typeof initFnc == 'function') initFnc();
 		},
 		addFunction: function(fnc, scope, objectArg) {
-			if (!frameWindow || !frameWindow.document || !frameWindow.document.body) {
+			if (supportsChangingHistoryViaFrame && (!frameWindow || !frameWindow.document || !frameWindow.document.body)) {
 				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
 				return;
 			}
@@ -394,7 +396,7 @@ var dsHistory = function() {
 		// the time in Gecko browsers.
 		// we don't want to update the window has until this function is called since, otherwise, the history will change all
 		bindQueryVars: function(fnc, scope, objectArg, continueProcessing) {
-			if (!frameWindow || !frameWindow.document || !frameWindow.document.body) {
+			if (supportsChangingHistoryViaFrame && (!frameWindow || !frameWindow.document || !frameWindow.document.body)) {
 				executionQueue.push({type: arguments.callee, fnc: fnc, scope: scope, objectArg: objectArg});
 				return;
 			}
