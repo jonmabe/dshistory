@@ -48,8 +48,8 @@ var dsHistory = function() {
 	// internal function to make sure we don't leave any memory leaks when the visitor leaves
 	function unload() {
 		window.clearInterval(watcherInterval);
-		delete frameWindow;
-		delete eventCache;
+		frameWindow = null;
+		eventCache = null;
 	};
 	// internal function to curry the scope argument and object argument (if either) so that the subscriber can be called once it's appropriately hit in the
 	// history
