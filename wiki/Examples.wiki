@@ -7,7 +7,7 @@ Following is a contrived and condensed pseudo-example based only on functions ad
 
 {{{
 <body>
-  <script src="/dshistory/dshistory.compressed.js"></script>
+  <script src="dshistory.js"></script>
 
   <div id="first-tab" onclick="showContent({contentToShow: 'first-block-content', contentToHide: 'second-block-content'})">First tab</div>
   <div id="second-tab" onclick="showContent({contentToShow: 'second-block-content', contentToHide: 'first-block-content'})">Second tab</div>
@@ -17,7 +17,7 @@ Following is a contrived and condensed pseudo-example based only on functions ad
 
   <script>
   function showContent(contentObject, historyObject) {
-    if (!historyObject.calledFromHistory) {
+    if (!historyObject || !historyObject.calledFromHistory) {
         dsHistory.addFunction(showContent, window, contentObject);
     }
 
@@ -27,7 +27,7 @@ Following is a contrived and condensed pseudo-example based only on functions ad
   
   dsHistory.addFunction(showContent, window, {
     contentToShow: 'first-block-content',
-	contentToHide: 'second-block-content'
+    contentToHide: 'second-block-content'
   });
   </script>
 </body>
@@ -39,7 +39,7 @@ Now, let's say you want to do the same thing but support bookmarking. You can do
 
 {{{
 <body>
-  <script src="/dshistory/dshistory.compressed.js"></script>
+  <script src="dshistory.js"></script>
 
   <div id="first-tab" onclick="showContent({contentToShow: 'first-block-content', contentToHide: 'second-block-content'})">First tab</div>
   <div id="second-tab" onclick="showContent({contentToShow: 'second-block-content', contentToHide: 'first-block-content'})">Second tab</div>
@@ -49,20 +49,20 @@ Now, let's say you want to do the same thing but support bookmarking. You can do
 
   <script>
   function showContent(contentObject, historyObject) {
-    if (!historyObject.calledFromHistory) {
+    if (!historyObject || !historyObject.calledFromHistory) {
         dsHistory.setQueryVar('Showing', contentObject.contentToShow);
         dsHistory.setQueryVar('Hiding', contentObject.contentToHide);
-        dsHistory.bindQueryVars(showContent, window, contentObject); // this should be treated the same as addFunction as the setQueryVar functions above really don't have any impact yet
-        // now, dsHistory.QueryVars['Showing'] = contentObject.contentToShow;
-        // now, dsHistory.QueryVars['Hiding'] = contentObject.contentToHide;
+        dsHistory.bindQueryElements(showContent, window, contentObject); // this should be treated the same as addFunction as the setQueryVar functions above really don't have any impact yet
+        // now, dsHistory.QueryElements['Showing'] = contentObject.contentToShow;
+        // now, dsHistory.QueryElements['Hiding'] = contentObject.contentToHide;
     }
 
     document.getElementById(contentObject.contentToShow).style.display = 'block';
     document.getElementById(contentObject.contentToHide).style.display = 'none';
   }
   
-  if (typeof dsHistory.QueryVars['Showing'] == 'string' && typeof dsHistory.QueryVars['Hiding'] == 'string') {
-    showContent({contentToShow: dsHistory.QueryVars['Showing'], contentToHide: dsHistory.QueryVars['Hiding']});
+  if (typeof dsHistory.QueryElements['Showing'] == 'string' && typeof dsHistory.QueryElements['Hiding'] == 'string') {
+    showContent({contentToShow: dsHistory.QueryElements['Showing'], contentToHide: dsHistory.QueryElements['Hiding']});
   } else {
     dsHistory.addFunction(showContent, window, {
       contentToShow: 'first-block-content',
