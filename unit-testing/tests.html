@@ -1,0 +1,114 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+	<head>
+	<title>dsHistory Testing Driver</title>
+	
+	<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+	<script src="../dshistory.js"></script>
+	<script src="tests.js"></script>
+	
+	<style type="text/css">
+	body {
+		font-family: Verdana;
+		font-size: 12px;
+		line-height: 17px;
+		margin: 20px auto 0;
+		width: 700px;
+	}
+	h2, label {
+		border-bottom: 1px solid #DDD;
+		clear: both;
+		display: block;
+		float: left;
+		font-weight: bold;
+		width: 500px;
+	}
+	label {
+		margin-bottom: 5px;
+	}
+	h2 {
+		margin: 0;
+		width: 550px;
+	}
+	.test-descriptor-container {
+		clear: both;
+		height: 20px;
+		margin: 20px 0 5px;
+	}
+	.test-group {
+		clear: both;
+		display: none;
+		margin-left: 50px;
+		overflow: hidden;
+	}
+	.status, .command {
+		border-bottom: 1px solid #DDD;
+		display: block;
+		float: right;
+		font-weight: bold;
+		text-align: right;
+		text-decoration: none;
+		width: 150px;
+	}
+	.status {
+		color: #999;
+	}
+	.command {
+		outline: none;
+	}
+	.success {
+		color: green;
+		font-weight: bold;
+	}
+	.failure {
+		color: red;
+		font-weight: bold;
+	}
+	</style>
+	</head>
+
+	<body>
+		<div class="test-descriptor-container">
+			<h2>the basics</h2>
+			<a class="command" href="javascript:void(0);">( run tests )</a>
+		</div>
+		
+		<div class="test-group">
+			<label>dsHistory initialized</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>addFunction</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>setQueryVars, removeQueryVars, bindQueryVars</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>read QueryElements</label>
+			<div class="status">test hasn't run yet</div>
+		</div>
+		
+		<div class="test-descriptor-container">
+			<h2>... and combinations thereof</h2>
+			<a class="command" href="javascript:void(0);">( run tests )</a>
+		</div>
+		
+		<div class="test-group">
+			<label>setQueryVar, removeQueryVar, setQueryVar, bindQueryVars</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>back</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>addFunction, setQueryVar, bindQueryVars</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>back</label>
+			<div class="status">test hasn't run yet</div>
+			
+			<label>setQueryVar, bindQueryVars, addFunction</label>
+			<div class="status">test hasn't run yet</div>
+		</div>
+	</body>
+</html>
