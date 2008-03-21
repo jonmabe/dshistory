@@ -226,9 +226,6 @@ var dsHistory = function() {
 		var frameIteration = supportsChangingHistoryViaFrame ? readIteration() : 0;
 		var windowHash = getEncodedWindowHash();
 		
-		//if (isInHistory && hashCache.length > 1 && windowHash == hashCache[0] && dirtyHash != initialHash)
-			//dirtyHash = initialHash;
-		
 		// if the frame iteration is different or the window hash is different, we'll start a sequence of events to go back in time
 		if (
 			!isGoingForward
@@ -318,7 +315,7 @@ var dsHistory = function() {
 		deferProcessing: false,
 		initialize: function(initFnc) {
 			// the library itself is actually initialized before the anonymous function that is this library is returned, but we use
-			// this function call both for backwards compatibility
+			// this function call for backwards compatibility
 			
 			if (typeof initFnc == 'function') initFnc();
 		},
@@ -402,7 +399,8 @@ var dsHistory = function() {
 				return;
 			}
 			// if desired, one could check if the result of this function is === false and operate accordingly. shouldn't really be necessary though
-			if (getEncodedWindowHash() == dirtyHash.replace('#', '')) return false; // dirty hash will always be encoded, so replace('#', '') will only replace the inital # if it's there
+			// dirty hash will always be encoded, so replace('#', '') will only replace the inital # if it's there
+			if (getEncodedWindowHash() == dirtyHash.replace('#', '') && eventCache.length > 0) return false;
 			
 			// if the option to defer processing has been set and our continueProcessing argument has been set, defer the function call to the
 			// next available cycle so that the UI can update and other processing can continue. 
