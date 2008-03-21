@@ -18,7 +18,7 @@ var dsHistory = function() {
 			IE: isIE,
 			IE6: isIE && userAgent.indexOf('MSIE 6') != -1,
 			IE7: isIE && userAgent.indexOf('MSIE 7') != -1,
-			Opera: !!window.opera,
+			Opera: !!window.opera, // may want to rethink this and the isIE function in light of http://ejohn.org/blog/bad-object-detection/
 			WebKit: userAgent.indexOf('AppleWebKit/') > -1,
 			Gecko: userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1
 		};
