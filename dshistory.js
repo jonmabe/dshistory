@@ -169,16 +169,16 @@ var dsHistory = function() {
 		
 		// it seems that gecko has a sweet bug / feature / something that prevents the history from changing with a frame iteration after a hash has changed the history
 		// therefore, we have to mess with the hash enough to get it to add to the browser's history and then change it back so we don't screw up any values in the hash
-		if ( (hashCache.length > 0 && browser.Gecko) || (!supportsChangingHistoryViaFrame && readIteration() > 0) ) {
+		if ( (hashCache.length > 0 && browser.Gecko) || browser.WebKit || (!supportsChangingHistoryViaFrame && readIteration() > 0) ) {
 			
 			// since it's not IE, and since other browsers don't seem to have a performance problem with setting the window hash when there are lots of
 			// elements on a page, we're not going to worry about handling the defer processing attribute here
 			
-			if (lastHash == '') {
+			if (lastHash == '' && hashCache.length > 1) {
 				window.location.hash = '_'; // this can be anything, as long as the hash changes
 				lastHash = getEncodedWindowHash(true);
 				hashCache.push(lastHash);
-			} else {
+			} else if (lastHash != '') {
 				// splice the event off the stack so we can add it on later
 				lastEvent = eventCache.splice(eventCache.length - 1, 1)[0];
 				
