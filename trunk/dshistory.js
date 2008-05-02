@@ -383,7 +383,7 @@ var dsHistory = function() {
 			
 			indexOfData = dirtyHash.indexOf(dataToStrip);
 			removeAmpersand = (dirtyHash != '' && indexOfData != 0) || (dirtyHash != '#' && indexOfData != -1);
-			dirtyHash = dirtyHash.substr(0, indexOfData - (removeAmpersand ? 1 : 0)) + dirtyHash.substr(indexOfData + dataToStrip.length + (removeAmpersand ? 1 : 0));
+			dirtyHash = dirtyHash.substr(0, indexOfData - (removeAmpersand ? 1 : 0)) + dirtyHash.substr(indexOfData + dataToStrip.length);
 			
 			delete this.QueryElements[key];
 			
