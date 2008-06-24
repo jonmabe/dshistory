@@ -178,15 +178,16 @@ var dsHistory = function() {
 				window.location.hash = '_'; // this can be anything, as long as the hash changes
 				lastHash = getEncodedWindowHash(true);
 				hashCache.push(lastHash);
-			} else if (lastHash != '') {
+			} else if (lastHash != '' || browser.WebKit) {
 				// splice the event off the stack so we can add it on later
 				lastEvent = eventCache.splice(eventCache.length - 1, 1)[0];
 				
 				window.location.hash = lastHash + String(hashCache.length); // this can be anything, as long as the hash changes
 				hashCache.push(lastHash + String(hashCache.length));
 				
-				window.location.hash = lastHash;
-				hashCache.push(lastHash);
+				// lastHash should only be empty if the browser is WebKit.
+				window.location.hash = lastHash == '' ? '-' : lastHash; // the value if lastHash is empty can't be the same as the value in the if-case above
+				hashCache.push(lastHash == '' ? '-' : lastHash);
 				
 				// since we popped off the last event on the history stack, we're going to add it back on _after_ we add on a function to get back to our unadultered hash
 				eventCache.push(function(indicator) {
@@ -464,7 +465,7 @@ var dsHistory = function() {
 						var executionItem = executionQueue[i];
 						executionItem.type(executionItem.fnc, executionItem.scope, executionItem.objectArg);
 					}
-					delete executionQueue;
+					executionQueue = null;
 				}
 			}, 50);
 		} else {
@@ -476,6 +477,8 @@ var dsHistory = function() {
 	
 	if (browser.IE || browser.WebKit)
 		hashCache.push(initialHash);
+	//if (browser.WebKit && window.location.hash == '')
+		//window.location.hash = '_';
 	
 	// initialize the QueryElements object
 	loadQueryVars();
