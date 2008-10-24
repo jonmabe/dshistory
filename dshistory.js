@@ -12,13 +12,13 @@ var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
 	var browser = (function() {
 		var userAgent = window.navigator.userAgent;
-		var isIE = !!(window.attachEvent && !window.opera);
+		var isIE = !!(window.attachEvent && !window.opera); // may want to rethink this in light of http://ejohn.org/blog/bad-object-detection/
 		
 		return {
 			IE: isIE,
 			IE6: isIE && userAgent.indexOf('MSIE 6') != -1,
 			IE7: isIE && userAgent.indexOf('MSIE 7') != -1,
-			Opera: !!window.opera, // may want to rethink this and the isIE function in light of http://ejohn.org/blog/bad-object-detection/
+			Opera: !!window.opera && userAgent.indexOf('Opera'),
 			WebKit: userAgent.indexOf('AppleWebKit/') > -1,
 			Gecko: userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1
 		};
@@ -130,14 +130,14 @@ var dsHistory = function() {
 		if (hashItems.length > 9) {
 			var encodedHashItems = [];
 			
-			for (i = 0, len = hashItems.length; i < len; ++i) {
+			for (var i = 0, len = hashItems.length; i < len; ++i) {
 				hashSplit = hashItems[i].split('=');
-				encodedHashItems.push((i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : ''));
+				encodedHashItems.push(encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : ''));
 			}
 			encodedHash = encodedHashItems.join('&');
 		} else {
 			encodedHash = ''
-			for (i = 0, len = hashItems.length; i < len; ++i) {
+			for (var i = 0, len = hashItems.length; i < len; ++i) {
 				hashSplit = hashItems[i].split('=');
 				encodedHash += (i == 0 ? '' : '&') + encodeURIComponent(getDecodedHashValue(hashSplit[0])) + (hashSplit.length == 2 ? '=' + encodeURIComponent(getDecodedHashValue(hashSplit[1])) : '');
 			}
@@ -383,8 +383,13 @@ var dsHistory = function() {
 				dataToStrip = encodeURIComponent(key) + '=' + encodeURIComponent(this.QueryElements[key]);
 			
 			indexOfData = dirtyHash.indexOf(dataToStrip);
-			removeAmpersand = (dirtyHash != '' && indexOfData != 0) || (dirtyHash != '#' && indexOfData != -1);
-			dirtyHash = dirtyHash.substr(0, indexOfData - (removeAmpersand ? 1 : 0)) + dirtyHash.substr(indexOfData + dataToStrip.length);
+			if (dirtyHash[indexOfData - 1] == '&') {
+				dataToStrip = '&' + dataToStrip;
+				indexOfData--;
+			}
+			dirtyHash = dirtyHash.substr(0, indexOfData) + dirtyHash.substr(indexOfData + dataToStrip.length);
+			if (dirtyHash[0] == '&')
+				dirtyHash = dirtyHash.substr(1, dirtyHash.length - 1);
 			
 			delete this.QueryElements[key];
 			
