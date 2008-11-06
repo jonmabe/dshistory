@@ -1,5 +1,5 @@
 /*!
- * dsHistory, v1-beta1 $Rev$
+ * dsHistory, v1-beta3 $Rev$
  * Revision date: $Date$
  * Project URL: http://code.google.com/p/dshistory/
  * 
@@ -341,6 +341,7 @@ var dsHistory = function() {
 		// this will conditionally add or update the name / value that was passed in. it will also add / update the QueryElements object
 		setQueryVar: function(key, value) {
 			var encodedKey, encodedValue;
+			var indexOfKey;
 			
 			key = String(key);
 			value = String(typeof value == 'undefined' ? '' : value);
@@ -355,6 +356,7 @@ var dsHistory = function() {
 					dirtyHash = '#' + encodedKey;
 			} else {
 				if (typeof this.QueryElements[key] != 'undefined' && value != '') {
+					indexOfKey = dirtyHash.search(encodedKey + '\\b');
 					dirtyHash = dirtyHash.substr(0, dirtyHash.indexOf(encodedKey) + encodedKey.length + 1) + encodedValue + dirtyHash.substr(dirtyHash.indexOf(encodedKey) + encodedKey.length + 1 + String(encodeURIComponent(this.QueryElements[key])).length);
 				} else if (typeof this.QueryElements[key] == 'undefined') {
 					if (value == '')
