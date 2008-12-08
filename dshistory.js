@@ -1,5 +1,5 @@
 /*!
- * dsHistory, v1-beta4 $Rev$
+ * dsHistory, v1-beta5 $Rev$
  * Revision date: $Date$
  * Project URL: http://code.google.com/p/dshistory/
  * 
@@ -12,7 +12,7 @@ var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
 	var browser = (function() {
 		var userAgent = window.navigator.userAgent;
-		var isIE = !!(window.attachEvent && !window.opera && userAgent.indexOf('Opera') != -1);
+		var isIE = !!(window.attachEvent && !window.opera && userAgent.indexOf('Opera') == -1);
 		
 		return {
 			IE: isIE,
