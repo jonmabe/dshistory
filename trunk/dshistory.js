@@ -1,5 +1,5 @@
 /*!
- * dsHistory, v1-beta3 $Rev$
+ * dsHistory, v1-beta4 $Rev$
  * Revision date: $Date$
  * Project URL: http://code.google.com/p/dshistory/
  * 
