@@ -14,5 +14,10 @@
        <link>http://code.google.com/p/dshistory/</link>
        <description><![CDATA[This is the first beta release, but there's still a ton of work to do, so please be patient. This release contains a bug fix for Gecko when trying to add function to stack after bindQueryVars was called and back button had been clicked. Support for Safari 3 has also been added. Safari 2 and Opera, here I come....]]></description>
     </item>
+    <item>
+       <title>dsHistory, v1-beta4 is out now</title>
+       <link>http://code.google.com/p/dshistory/</link>
+       <description><![CDATA[dsHistory v1-beta4 is out. It contains a number of small bug fixes since the last release. You can download it from the <a href="http://code.google.com/p/dshistory/">project's home</a>.]]></description>
+    </item>
   </channel>
 </rss>
