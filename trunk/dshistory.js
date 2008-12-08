@@ -12,13 +12,13 @@ var dsHistory = function() {
 	// we need a good browser detection library. these detections were kindly borrowed from the Prototype library
 	var browser = (function() {
 		var userAgent = window.navigator.userAgent;
-		var isIE = !!(window.attachEvent && !window.opera); // may want to rethink this in light of http://ejohn.org/blog/bad-object-detection/
+		var isIE = !!(window.attachEvent && !window.opera && userAgent.indexOf('Opera') != -1);
 		
 		return {
 			IE: isIE,
 			IE6: isIE && userAgent.indexOf('MSIE 6') != -1,
 			IE7: isIE && userAgent.indexOf('MSIE 7') != -1,
-			Opera: !!window.opera && userAgent.indexOf('Opera'),
+			Opera: !!window.opera && userAgent.indexOf('Opera') != -1,
 			WebKit: userAgent.indexOf('AppleWebKit/') > -1,
 			Gecko: userAgent.indexOf('Gecko') > -1 && userAgent.indexOf('KHTML') == -1
 		};
@@ -254,9 +254,9 @@ var dsHistory = function() {
 					}
 				}
 				
-				// we need to set this here so that if history.back() is one of the functions on the eventCache,
-				// it will know we're on a different hash
-				lastHash = getEncodedWindowHash(true);
+				// lastHash gets updated here so that if history.back() is one of the functions on the eventCache,
+				// it will know we're on a different hash. additionally, QueryVars is reloaded to match the new hash
+				loadQueryVars();
 				dirtyHash = lastHash;
 			}
 			
@@ -294,7 +294,7 @@ var dsHistory = function() {
 			if ((lastHash != windowHash && forwardHashCache[forwardHashCache.length - 1] == windowHash) || browser.IE) {
 				if (browser.IE)
 					window.location.hash = forwardHashCache[forwardHashCache.length - 1];
-				lastHash = getEncodedWindowHash(true);
+				loadQueryVars();
 				dirtyHash = lastHash;
 				hashCache = hashCache.concat(forwardHashCache.splice(forwardHashCache.length - 1, 1));
 			}
