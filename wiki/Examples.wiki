@@ -52,7 +52,8 @@ Now, let's say you want to do the same thing but support bookmarking. You can do
     if (!historyObject || !historyObject.calledFromHistory) {
         dsHistory.setQueryVar('Showing', contentObject.contentToShow);
         dsHistory.setQueryVar('Hiding', contentObject.contentToHide);
-        dsHistory.bindQueryVars(showContent, window, contentObject); // this should be treated the same as addFunction as the setQueryVar functions above really don't have any impact yet
+        // this should be treated the same as addFunction as the setQueryVar functions above really don't have any impact yet
+        dsHistory.bindQueryVars(showContent, window, contentObject);
         // now, dsHistory.QueryElements['Showing'] = contentObject.contentToShow;
         // now, dsHistory.QueryElements['Hiding'] = contentObject.contentToHide;
     }
