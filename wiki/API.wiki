@@ -26,5 +26,3 @@
   * *setQueryVar*: Queues a key and value pair to be added to the window hash, but doesn't actually update it. Accepts two arguments:
     # `key`: The key of the hash item.
     # `value`: The value of the hash item.
-
-  * *setUsingStringIndicators*: Deprecated. Provided for backward compatibility, but will be removed by v1.0 final.
